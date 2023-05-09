@@ -7,10 +7,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
+import it.polito.tdp.extflightdelays.model.Edge;
 import it.polito.tdp.extflightdelays.model.Flight;
+
 
 public class ExtFlightDelaysDAO {
 
@@ -50,6 +53,7 @@ public class ExtFlightDelaysDAO {
 				Airport airport = new Airport(rs.getInt("ID"), rs.getString("IATA_CODE"), rs.getString("AIRPORT"),
 						rs.getString("CITY"), rs.getString("STATE"), rs.getString("COUNTRY"), rs.getDouble("LATITUDE"),
 						rs.getDouble("LONGITUDE"), rs.getDouble("TIMEZONE_OFFSET"));
+				
 				result.add(airport);
 			}
 
@@ -91,4 +95,126 @@ public class ExtFlightDelaysDAO {
 			throw new RuntimeException("Error Connection Database");
 		}
 	}
+	
+	
+	/**  *************** ALT:  chiede la media di un valore !!!!  *************** */ 
+	
+	// mi sa che NON mi servirà:
+	
+	public List <Airport> trovaIdVoli(Airport partenza, Map <Integer,Airport>fermateIdMap, int distanzaMinima){
+		
+		String sql= " SELECT  destination_airport_id,  AVG(distance) "
+				+ "FROM flights "
+				+ "WHERE  origin_airport_id= ? "
+				+ "GROUP BY destination_airport_id "
+				+ "HAVING AVG(distance) >= ? ";
+		
+		// 59, 500
+     List<Airport> arrivi = new ArrayList<>();
+		
+		try {
+			Connection conn = ConnectDB.getConnection() ;
+			
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setInt(1, partenza.getId());
+			st.setInt(2, distanzaMinima);
+			
+			ResultSet rs = st.executeQuery() ;
+			
+			while (rs.next()) {
+			//occhio: non ho creato alcun oggetto di classe fermata
+				
+				Integer idFermata= rs.getInt("destination_airport_id");
+				arrivi.add(fermateIdMap.get(idFermata));
+			}
+			st.close();
+			conn.close();
+			
+			
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
+		
+		
+		return arrivi;
+//list con tutti gli id degli aereoporti di arrivo che rispettano i miei requisisti 
+		
+	}
+	
+public List <Edge> trovaCoppieVoli( Map <Integer,Airport>fermateIdMap, int distanzaMinima){
+		
+		String sql= " SELECT origin_airport_id, destination_airport_id, AVG(distance) as media "
+				+ "FROM flights "
+				+"GROUP BY ORIGIN_AIRPORT_ID, DESTINATION_AIRPORT_ID " 
+				+ "HAVING media >= ? ";
+		
+		// 59, 500
+     List<Edge> edges = new ArrayList<>();
+		
+		try {
+			Connection conn = ConnectDB.getConnection() ;
+			
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			
+			st.setInt(1, distanzaMinima);
+			
+			ResultSet rs = st.executeQuery() ;
+			
+			while (rs.next()) {
+			
+				
+				Edge edg = new Edge(fermateIdMap.get(rs.getInt("origin_airport_id")),
+						fermateIdMap.get(rs.getInt ("destination_airport_id")), rs.getDouble("media")  );
+				
+				edges.add(edg);
+			}
+			st.close();
+			conn.close();
+			
+			
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
+		
+		
+		return edges;
+//list con tutti gli id degli aereoporti di arrivo che rispettano i miei requisisti 
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 }
